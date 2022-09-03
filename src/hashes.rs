@@ -46,6 +46,7 @@ impl HRPPHICT {
 
     Collision resistant hash is generated from RSA library.
     The enumerating process is limited to no more than 200 rounds.
+    
     */
     pub fn new(threshold: u16, lambda: u64) -> HRPPHICT {
         let d = if threshold <= 100 {
