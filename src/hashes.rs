@@ -3,7 +3,9 @@ extern crate num_bigint;
 extern crate rsa;
 use num_bigint::{BigInt, BigUint, RandBigInt, ToBigInt};
 use num_traits::{One, ToPrimitive, Zero};
-use rsa::{PublicKeyParts, RsaPrivateKey, RsaPublicKey};
+use rsa::traits::PublicKeyParts;
+use rsa::RsaPrivateKey;
+use rsa::RsaPublicKey;
 use std::ops::{Add, Sub};
 
 /**
@@ -46,7 +48,7 @@ impl HRPPHICT {
 
     Collision resistant hash is generated from RSA library.
     The enumerating process is limited to no more than 200 rounds.
-    
+
     */
     pub fn new(threshold: u16, lambda: u64) -> HRPPHICT {
         let d = if threshold <= 100 {
@@ -59,13 +61,13 @@ impl HRPPHICT {
         let priv_key =
             RsaPrivateKey::new(&mut rng, lambda as usize).expect("failed to generate a key");
         let pub_key = RsaPublicKey::from(&priv_key);
-        let mut a = rng.gen_biguint(lambda as u64);
+        let mut a = rng.gen_biguint(lambda);
         let module = BigUint::from_bytes_le(&(pub_key.n().to_bytes_le()));
-        a = a % &module;
+        a %= &module;
 
         HRPPHICT {
             t: threshold,
-            d: d,
+            d,
             s: threshold / d,
             a: a.clone(),
             n: module.clone(),
@@ -110,7 +112,7 @@ impl HRPPHICT {
             }
             c -= step;
         }
-        return (None, false);
+        (None, false)
     }
 
     pub fn n(&self) -> BigUint {
@@ -125,7 +127,8 @@ impl HRPPHICT {
             let i = self.a.modpow(&BigUint::from((-x) as u32), &self.n);
             modinverse(&i, &self.n).unwrap()
         };
-        return h == *y;
+
+        h == *y
     }
 }
 
@@ -149,7 +152,7 @@ impl Sub for Hash {
     type Output = Self;
 
     fn sub(self, other: Self) -> Self::Output {
-        self + other.inverse()
+        self.add(other.inverse())
     }
 }
 
@@ -168,7 +171,7 @@ fn egcd(a: &BigInt, b: &BigInt) -> (BigInt, BigInt, BigInt) {
     if *a == BigInt::zero() {
         ((*b).clone(), BigInt::zero(), BigInt::one())
     } else {
-        let (g, x, y) = egcd(&(b % a), &a);
+        let (g, x, y) = egcd(&(b % a), a);
         (g, y - (b / a) * (x.clone()), x)
     }
 }
